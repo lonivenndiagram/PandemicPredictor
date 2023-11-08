@@ -1,111 +1,100 @@
+import argparse
+import json
 import matplotlib.pyplot as plt
 
 class PandemicSimulator:
-    def __init__(self, r0, mortality_rate, mortality_rate_no_hospital):
-        # Validate input parameters
-        if r0 < 0 or mortality_rate < 0 or mortality_rate_no_hospital < 0:
-            raise ValueError("Input parameters cannot be negative.")
-
+    def __init__(self, r0, mortality_rate, mortality_rate_no_hospital, hospital_beds, occupied_beds):
         self.r0 = r0
         self.mortality_rate = mortality_rate
         self.mortality_rate_no_hospital = mortality_rate_no_hospital
-
-        # Initialize hospital bed and occupied bed counts
-        self._hospital_beds = 0
-        self._occupied_beds = 0
-
-    @property
-    def hospital_beds(self):
-        return self._hospital_beds
-
-    @hospital_beds.setter
-    def hospital_beds(self, value):
-        if value < 0:
-            raise ValueError("Number of hospital beds cannot be negative.")
-        self._hospital_beds = value
-
-    @property
-    def occupied_beds(self):
-        return self._occupied_beds
-
-    @occupied_beds.setter
-    def occupied_beds(self, value):
-        if value < 0 or value > self._hospital_beds:
-            raise ValueError("Number of occupied beds cannot be negative or exceed total hospital beds.")
-        self._occupied_beds = value
+        self.hospital_beds = hospital_beds
+        self.occupied_beds = occupied_beds
 
     def calculate_new_infections(self, current_infections):
-        """Calculate the number of new infections for the day."""
-        if current_infections < 0:
-            raise ValueError("Current infections cannot be negative.")
-        
         new_infections = current_infections * self.r0
         return new_infections
 
     def calculate_hospitalizations(self, new_infections):
-        """Calculate the number of new hospitalizations for the day."""
-        unoccupied_beds = self._hospital_beds - self._occupied_beds
-        if unoccupied_beds >= new_infections:
-            self._occupied_beds += new_infections
-            return new_infections
-        else:
-            hospitalizations = unoccupied_beds
-            self._occupied_beds = self._hospital_beds
-            return hospitalizations
+        unoccupied_beds = self.hospital_beds - self.occupied_beds
+        hospitalizations = min(unoccupied_beds, new_infections)
+        self.occupied_beds += hospitalizations
+        return hospitalizations
 
     def calculate_deaths(self, new_infections, hospitalizations):
-        """Calculate the number of deaths for the day."""
         deaths_hospitalized = hospitalizations * self.mortality_rate
         deaths_no_hospital = (new_infections - hospitalizations) * self.mortality_rate_no_hospital
-        total_deaths = deaths_hospitalized + deaths_no_hospital
-        return total_deaths
+        return deaths_hospitalized + deaths_no_hospital
 
     def run_simulation(self, days, initial_infections):
-        """Run the simulation over a given number of days."""
-        infections = [1000]
-        hospitalizations = [50]
-        deaths = [2000]
-        recoveries = [300]  # Added to track recoveries
+        infections = [initial_infections]
+        hospitalizations = []
+        deaths = []
+        recoveries = []
 
-        for day in range(1, days):
-            # Assuming a constant recovery rate of 10% of occupied beds per day
-            recovered_today = int(0.1 * self._occupied_beds)
-            self._occupied_beds = max(0, self._occupied_beds - recovered_today)
-
+        for day in range(days):
             new_infections = self.calculate_new_infections(infections[-1])
-            hospitalization = self.calculate_hospitalizations(new_infections)
-            death = self.calculate_deaths(new_infections, hospitalization)
+            new_hospitalizations = self.calculate_hospitalizations(new_infections)
+            new_deaths = self.calculate_deaths(new_infections, new_hospitalizations)
 
-            infections.append(new_infections + infections[-1])
-            hospitalizations.append(hospitalizations[-1] + hospitalization)
-            deaths.append(deaths[-1] + death)
-            recoveries.append(recoveries[-1] + recovered_today)  # Update recoveries
+            infections.append(new_infections)
+            hospitalizations.append(new_hospitalizations)
+            deaths.append(new_deaths)
+            # Assuming a constant recovery rate of 10% of occupied beds per day
+            recoveries.append(self.occupied_beds * 0.1)
+
+            # Update occupied beds for next day
+            self.occupied_beds = max(self.occupied_beds - recoveries[-1], 0)
 
         return infections, hospitalizations, deaths, recoveries
 
     def plot_simulation(self, days, initial_infections):
-        """Visualize the simulation results."""
         infections, hospitalizations, deaths, recoveries = self.run_simulation(days, initial_infections)
         
         plt.figure(figsize=(12, 8))
-        plt.plot(range(days), infections, label="Infections", linestyle='--', marker='o')
-        plt.plot(range(days), hospitalizations, label="Hospitalizations", linestyle='--', marker='v')
-        plt.plot(range(days), deaths, label="Deaths", linestyle='--', marker='s')
-        plt.plot(range(days), recoveries, label="Recoveries", linestyle='--', marker='x')
+        plt.plot(range(days + 1), infections, label="Infections")
+        plt.plot(range(days + 1), hospitalizations, label="Hospitalizations")
+        plt.plot(range(days + 1), deaths, label="Deaths")
+        plt.plot(range(days + 1), recoveries, label="Recoveries")
         plt.xlabel("Days")
-        plt.ylabel("Count")
+        plt.ylabel("Number of Cases")
+        plt.title("Pandemic Simulation Over Time")
         plt.legend()
-        plt.title("Pandemic Simulation")
         plt.grid(True)
-        plt.annotate('Initial Infections', xy=(0, initial_infections), xytext=(3, initial_infections + 50),
-                     arrowprops=dict(facecolor='black', arrowstyle='->'),
-                     fontsize=12)
         plt.show()
 
-# Example usage:
-try:
-    simulator = PandemicSimulator(r0=3.28, mortality_rate=0.03, mortality_rate_no_hospital=0.1)
-    simulator.hospital_beds = 500
-    simulator.plot_simulation(days=120, initial_infections=1000)
-except ValueError as e:
-    print(f"An error occurred: {e}")
+
+def read_parameters_from_file(file_path):
+    with open(file_path, 'r') as file:
+        parameters = json.load(file)
+    return parameters
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Run a pandemic simulation model.')
+    parser.add_argument('--r0', type=float, help='The basic reproduction number')
+    parser.add_argument('--mortality_rate', type=float, help='Mortality rate for those in the hospital')
+    parser.add_argument('--mortality_rate_no_hospital', type=float, help='Mortality rate for those not hospitalized')
+    parser.add_argument('--hospital_beds', type=int, help='Total number of hospital beds available')
+    parser.add_argument('--occupied_beds', type=int, help='Number of occupied hospital beds at start')
+    parser.add_argument('--days', type=int, help='Number of days to simulate')
+    parser.add_argument('--initial_infections', type=int, help='Initial number of infections at start of simulation')
+    parser.add_argument('--param_file', type=str, help='Path to parameter file', default=None)
+    
+    args = parser.parse_args()
+    
+    if args.param_file:
+        parameters = read_parameters_from_file(args.param_file)
+        simulator = PandemicSimulator(**parameters)
+    else:
+        simulator = PandemicSimulator(
+            r0=args.r0,
+            mortality_rate=args.mortality_rate,
+            mortality_rate_no_hospital=args.mortality_rate_no_hospital,
+            hospital_beds=args.hospital_beds,
+            occupied_beds=args.occupied_beds
+        )
+
+    simulator.plot_simulation(args.days, args.initial_infections)
+
+if __name__ == '__main__':
+    main()
