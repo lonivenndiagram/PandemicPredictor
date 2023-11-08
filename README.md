@@ -1,48 +1,68 @@
-# Pandemic Outcome Predictor
-## Overview
-This Python program is designed to predict the progression of a pandemic caused by a communicable illness based on several key parameters. It can provide projections for the number of new cases, new hospital admissions, and new deaths over specific periods of time. This tool is meant to assist in understanding potential outcomes and resource planning during pandemics.
+# PandemicPredictor
 
-### Parameters
-To use the model, you'll need to provide the following parameters:
+PandemicPredictor is an open-source tool designed to simulate and visualize pandemic outcomes over a specified period. It takes into account various initial conditions and parameters to model the trajectory of a disease outbreak. The tool now features a command-line interface (CLI) for easy customization and supports configuration through a JSON file.
 
-*Basic Reproduction Number (R0):* The average number of secondary infections produced by one infected individual.
+## Features
 
-*Incubation Period (in days):* The time it takes for an infected individual to show symptoms.
+- A robust simulation model for pandemic forecasting.
+- A command-line interface for dynamic parameter input.
+- Parameter input via a configuration file for ease of use.
+- Visualization of infection, hospitalization, death, and recovery counts over time.
 
-*Mortality Rate (%):* The percentage of infected individuals who do not survive.
+## Getting Started
 
-*Mortality Rate without Hospitalization (%):* The percentage of infected individuals who do not survive when unable to receive hospital care.
+### Prerequisites
 
-*Total Hospital Beds Available:* The total number of hospital beds available in the area of interest.
+Ensure you have Python 3.x installed on your system. You can download it from [python.org](https://www.python.org/).
 
-*Current Hospital Beds Occupied:* The number of hospital beds currently occupied in the area of interest.
+### Installation
 
-*Positive Test Percentage (% of tests that come back positive):* The percentage of tests that result in a positive diagnosis.
+Clone the repository to your local machine:
 
+```bash
+git clone https://github.com/yourusername/PandemicPredictor.git
+cd PandemicPredictor
+```
 ### Usage
-Clone this repository to your local machine.
+You can run the simulation in two ways: by passing parameters directly through the CLI or by specifying a parameter file.
 
-Install the required dependencies:
-
-```bash
-pip install matplotlib
-```
-
-Modify the parameters in the predict_pandemic.py file according to your specific scenario.
-
-Run the script:
+Using the CLI
+Run the simulation with the following command:
 
 ```bash
-python predict_pandemic.py
+python predict_pandemic.py --r0 2.5 --mortality_rate 0.01 --mortality_rate_no_hospital 0.02 --hospital_beds 1000 --occupied_beds 500 --days 120 --initial_infections 100
 ```
+Using a Parameter File
+Alternatively, you can specify a JSON file with the required parameters:
 
-The program will provide projections for new cases, new hospital admissions, and new deaths over specific time periods.
+```bash
+python predict_pandemic.py --param_file 'parameters.json'
+```
+Here's an example of how to format parameters.json:
 
-### Extending for Other Diseases
-To adapt this model for other communicable illnesses, you'll need to gather data on the disease's specific parameters (R0, incubation period, mortality rates, etc.) and modify the code accordingly. Ensure that the data you use is reliable and relevant to the disease you're modeling.
+```json
+{
+  "r0": 2.5,
+  "mortality_rate": 0.01,
+  "mortality_rate_no_hospital": 0.02,
+  "hospital_beds": 1000,
+  "occupied_beds": 500,
+  "days": 120,
+  "initial_infections": 100
+}
+```
+### Visualization
+The tool automatically generates a graph at the end of the simulation, illustrating the progression of the pandemic over the specified period.
 
-### Disclaimer
-This model provides predictions based on the parameters you input. It is not a substitute for professional medical advice or official guidance from health authorities. Use the model responsibly and consult with experts and official sources for decision-making during a pandemic.
+### Model Assumptions
+The model assumes a constant reproduction number (R0), mortality rates, and hospital bed capacity. It does not account for demographic factors, behavior changes, or temporal variations in parameters.
+
+### Contributions
+We welcome contributions to the PandemicPredictor project. Please feel free to fork the repository, make your changes, and submit a pull request.
 
 ### License
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+### Acknowledgments
+All contributors who have helped in refining and enhancing this tool.
+The open-source community for continuous support and inspiration.
